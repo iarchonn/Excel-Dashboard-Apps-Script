@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Q1 Sales Performance Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome CDN for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        google: {
+                            blue: '#1a73e8',
+                            green: '#34a853',
+                            yellow: '#fbbc05',
+                            red: '#ea4335',
+                            dark: '#202124',
+                            slate: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar and animations */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-full flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-xl border-b border-slate-800 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2.5 rounded-xl shadow-lg shadow-blue-500/20 text-white flex items-center justify-center">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">Q1 Sales Performance Dashboard</h1>
+                    <p class="text-xs text-slate-400 font-medium">Enterprise Revenue Tracking & Quota Attainment Analytics</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div id="connection-status" class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 absolute"></span>
+                    <span class="ml-2">Live API Synchronized</span>
+                </div>
+                <button onclick="refreshData()" id="refresh-btn" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg border border-slate-700 transition shadow-sm">
+                    <i class="fa-solid fa-rotate text-blue-400" id="refresh-icon"></i>
+                    <span>Sync Data</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Loading Skeleton -->
+        <div id="loading-state" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-pulse-subtle h-32"></div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-pulse-subtle h-32"></div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-pulse-subtle h-32"></div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-pulse-subtle h-32"></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-pulse-subtle h-96"></div>
+        </div>
+
+        <!-- Dashboard Loaded View (Hidden initially) -->
+        <div id="dashboard-content" class="hidden space-y-6">
+
+            <!-- 1. Executive KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card 1: Total Actual Sales -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-blue-100 transition"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Actual Sales</span>
+                            <div class="p-2.5 rounded-xl bg-blue-50 text-blue-600 shadow-inner">
+                                <i class="fa-solid fa-sack-dollar text-base"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight" id="kpi-actual">$0</div>
+                        <div class="mt-2 flex items-center text-xs text-slate-500 gap-1.5 font-medium">
+                            <span class="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold" id="kpi-actual-sub">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Q1 Revenue
+                            </span>
+                            <span>Across all reps</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Total Plan Target -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-indigo-100 transition"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Plan Target</span>
+                            <div class="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shadow-inner">
+                                <i class="fa-solid fa-bullseye text-base"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight" id="kpi-target">$0</div>
+                        <div class="mt-2 flex items-center text-xs text-slate-500 gap-1.5 font-medium">
+                            <span class="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-semibold">Q1 Quota</span>
+                            <span>Aggregate goal</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Overall Quota Attainment -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-emerald-100 transition"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Overall Attainment</span>
+                            <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shadow-inner" id="kpi-attainment-icon-bg">
+                                <i class="fa-solid fa-percent text-base" id="kpi-attainment-icon"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight" id="kpi-attainment">0.0%</div>
+                        <div class="mt-2 flex items-center text-xs gap-1.5 font-medium">
+                            <span id="kpi-attainment-badge" class="px-2 py-0.5 rounded font-semibold text-emerald-700 bg-emerald-50">On Track</span>
+                            <span class="text-slate-500">vs Quota</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: MVP Top Performer -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-amber-100 transition"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">MVP Rep of the Month</span>
+                            <div class="p-2.5 rounded-xl bg-amber-50 text-amber-600 shadow-inner">
+                                <i class="fa-solid fa-trophy text-base"></i>
+                            </div>
+                        </div>
+                        <div class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate" id="kpi-mvp-name">Loading...</div>
+                        <div class="mt-2 flex items-center justify-between text-xs text-slate-600 font-medium">
+                            <span id="kpi-mvp-sales" class="font-bold text-slate-900">$0</span>
+                            <span id="kpi-mvp-rate" class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Interactive Search & Filters Bar -->
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                    <!-- Search Input -->
+                    <div class="relative w-full lg:w-80">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        </span>
+                        <input type="text" id="search-input" oninput="handleFilterChange()" placeholder="Search representative name..." 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
+                    </div>
+
+                    <!-- Dropdown Filters -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
+                        <!-- Region Filter -->
+                        <div class="relative">
+                            <select id="filter-region" onchange="handleFilterChange()" 
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none font-medium pr-10 cursor-pointer">
+                                <option value="All">All Regions (AMER, EMEA, APAC)</option>
+                                <option value="AMER">AMER</option>
+                                <option value="EMEA">EMEA</option>
+                                <option value="APAC">APAC</option>
+                            </select>
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </span>
+                        </div>
+
+                        <!-- Segment Filter -->
+                        <div class="relative">
+                            <select id="filter-segment" onchange="handleFilterChange()" 
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none font-medium pr-10 cursor-pointer">
+                                <option value="All">All Segments (Ent, Mid, SMB)</option>
+                                <option value="Enterprise">Enterprise</option>
+                                <option value="Mid-Market">Mid-Market</option>
+                                <option value="SMB">SMB</option>
+                            </select>
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </span>
+                        </div>
+
+                        <!-- Reset Button & Counter -->
+                        <div class="flex items-center gap-2">
+                            <button onclick="resetFilters()" class="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl transition border border-slate-200">
+                                <i class="fa-solid fa-rotate-left mr-1.5 text-slate-500"></i> Reset
+                            </button>
+                            <div class="px-3.5 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold whitespace-nowrap border border-blue-100 flex items-center justify-center">
+                                <span id="record-count">0</span>&nbsp;reps
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Data Visualizations (Bar & Doughnut Charts) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Grouped Bar Chart: Plan vs Actual (Takes 2 cols) -->
+                <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 gap-2">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900">Plan vs. Actual Sales Comparison</h2>
+                            <p class="text-xs text-slate-500">Side-by-side performance breakdown for filtered representatives</p>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-medium">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span> Plan Target</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Actual Sales</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-80 sm:h-96">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Cutout Doughnut Chart: Volume Contribution (Takes 1 col) -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="pb-4 mb-4 border-b border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-bold text-slate-900">Volume Share</h2>
+                            <div class="inline-flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                                <button onclick="setDoughnutMode('Region')" id="btn-doughnut-region" class="px-3 py-1.5 rounded-lg bg-white text-slate-900 shadow-sm transition">Region</button>
+                                <button onclick="setDoughnutMode('Segment')" id="btn-doughnut-segment" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">Segment</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Percentage contribution by category</p>
+                    </div>
+                    <div class="relative w-full h-64 sm:h-72 flex items-center justify-center my-auto">
+                        <canvas id="doughnutChart"></canvas>
+                    </div>
+                    <div id="doughnut-legend" class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-2 justify-center text-xs font-medium text-slate-600">
+                        <!-- Dynamic Legend Items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Standings Leaderboard Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Representative Standings Leaderboard</h2>
+                        <p class="text-xs text-slate-500">Comprehensive Q1 quota metrics, milestone statuses, and progress tracking</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-medium text-slate-500">Sort by:</span>
+                        <select id="sort-select" onchange="handleSortChange()" 
+                            class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            <option value="actual-desc">Actual Sales (High to Low)</option>
+                            <option value="attainment-desc">Attainment % (High to Low)</option>
+                            <option value="name-asc">Rep Name (A - Z)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/75 border-b border-slate-200 text-slate-500 font-semibold text-xs uppercase tracking-wider">
+                                <th class="py-3.5 px-4 sm:px-6">Rank</th>
+                                <th class="py-3.5 px-4 sm:px-6">Rep Name</th>
+                                <th class="py-3.5 px-4 sm:px-6">Region</th>
+                                <th class="py-3.5 px-4 sm:px-6">Segment</th>
+                                <th class="py-3.5 px-4 sm:px-6 text-right">Q1 Plan</th>
+                                <th class="py-3.5 px-4 sm:px-6 text-right">Q1 Actual</th>
+                                <th class="py-3.5 px-4 sm:px-6 text-right">Attainment</th>
+                                <th class="py-3.5 px-4 sm:px-6">Milestone Status</th>
+                                <th class="py-3.5 px-4 sm:px-6 w-40">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-tbody" class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                            <!-- Dynamic Rows inserted via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State for Table -->
+                <div id="table-empty-state" class="hidden py-16 text-center">
+                    <div class="inline-flex p-4 rounded-full bg-slate-100 text-slate-400 mb-3 text-2xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-800">No representatives found</h3>
+                    <p class="text-xs text-slate-500 mt-1">Try adjusting your search criteria or filters.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Application Logic Script -->
+    <script>
+        // API Endpoint provided
+        const API_URL = "https://script.google.com/macros/s/AKfycbxp9SMWhgrRBwc5849ppQjsMKQfKbVAZ1NXSLjoiKE5B0Wx3VTkyPhUtkn_FceVfiQjOg/exec";
+
+        // Global State Variables
+        let rawData = [];
+        let filteredData = [];
+        let currentSort = 'actual-desc';
+        let doughnutMode = 'Region'; // 'Region' or 'Segment'
+        
+        let barChartInstance = null;
+        let doughnutChartInstance = null;
+
+        // Fallback Mock Data in case of network/CORS issues
+        const fallbackData = [
+            {"Rep Name": "Alex Mercer", "Region": "AMER", "Segment": "Enterprise", "Q1 Plan": 150000, "Q1 Actual": 172500},
+            {"Rep Name": "Sarah Connor", "Region": "EMEA", "Segment": "Mid-Market", "Q1 Plan": 120000, "Q1 Actual": 126000},
+            {"Rep Name": "David Chen", "Region": "APAC", "Segment": "Enterprise", "Q1 Plan": 180000, "Q1 Actual": 165000},
+            {"Rep Name": "Elena Rostova", "Region": "EMEA", "Segment": "Enterprise", "Q1 Plan": 200000, "Q1 Actual": 240000},
+            {"Rep Name": "Marcus Vance", "Region": "AMER", "Segment": "SMB", "Q1 Plan": 90000, "Q1 Actual": 85500},
+            {"Rep Name": "Priya Sharma", "Region": "APAC", "Segment": "Mid-Market", "Q1 Plan": 110000, "Q1 Actual": 118000},
+            {"Rep Name": "James Wilson", "Region": "AMER", "Segment": "Enterprise", "Q1 Plan": 160000, "Q1 Actual": 144000},
+            {"Rep Name": "Chloe Bennett", "Region": "EMEA", "Segment": "SMB", "Q1 Plan": 85000, "Q1 Actual": 93500},
+            {"Rep Name": "Kenji Sato", "Region": "APAC", "Segment": "Enterprise", "Q1 Plan": 175000, "Q1 Actual": 192500},
+            {"Rep Name": "Sofia Morales", "Region": "AMER", "Segment": "Mid-Market", "Q1 Plan": 130000, "Q1 Actual": 135000}
+        ];
+
+        // Fetch data on window load
+        window.onload = function() {
+            fetchSalesData();
+        };
+
+        // Asynchronously fetch data from API with fallback
+        async function fetchSalesData() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+            try {
+                // Attempt fetch. If CORS or network fails, catch handles fallback.
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error("Network response was not ok");
+                const json = await response.json();
+                
+                // Validate structure
+                if (Array.isArray(json) && json.length > 0) {
+                    rawData = json.map(item => ({
+                        "Rep Name": item["Rep Name"] || item.repName || "Unknown",
+                        "Region": item["Region"] || item.region || "AMER",
+                        "Segment": item["Segment"] || item.segment || "SMB",
+                        "Q1 Plan": Number(item["Q1 Plan"] || item.q1Plan || 0),
+                        "Q1 Actual": Number(item["Q1 Actual"] || item.q1Actual || 0)
+                    }));
+                } else {
+                    throw new Error("Invalid data format");
+                }
+            } catch (error) {
+                console.warn("API fetch encountered issue. Loading robust fallback dataset.", error);
+                rawData = fallbackData;
+                
+                // Update connection status badge to indicate offline/mock mode
+                const connStatus = document.getElementById('connection-status');
+                if (connStatus) {
+                    connStatus.className = "hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium";
+                    connStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span><span>Offline / Sample Dataset</span>`;
+                }
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                
+                // Hide skeleton loader and show dashboard content
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('dashboard-content').classList.remove('hidden');
+
+                // Initialize filters & render app
+                applyFiltersAndSort();
+            }
+        }
+
+        // Manual refresh trigger
+        function refreshData() {
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('dashboard-content').classList.add('hidden');
+            setTimeout(fetchSalesData, 600);
+        }
+
+        // Currency Formatter Helper
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                maximumFractionDigits: 0
+            }).format(num);
+        }
+
+        // Handle search and dropdown filter changes
+        function handleFilterChange() {
+            applyFiltersAndSort();
+        }
+
+        // Handle table sort change
+        function handleSortChange() {
+            currentSort = document.getElementById('sort-select').value;
+            applyFiltersAndSort();
+        }
+
+        // Reset all filters
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('filter-region').value = 'All';
+            document.getElementById('filter-segment').value = 'All';
+            document.getElementById('sort-select').value = 'actual-desc';
+            currentSort = 'actual-desc';
+            applyFiltersAndSort();
+        }
+
+        // Toggle Doughnut view mode
+        function setDoughnutMode(mode) {
+            doughnutMode = mode;
+            const btnRegion = document.getElementById('btn-doughnut-region');
+            const btnSegment = document.getElementById('btn-doughnut-segment');
+            
+            if (mode === 'Region') {
+                btnRegion.className = "px-3 py-1.5 rounded-lg bg-white text-slate-900 shadow-sm transition";
+                btnSegment.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+            } else {
+                btnSegment.className = "px-3 py-1.5 rounded-lg bg-white text-slate-900 shadow-sm transition";
+                btnRegion.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+            }
+            updateDoughnutChart();
+        }
+
+        // Core Filtering, Sorting, and Rendering Orchestrator
+        function applyFiltersAndSort() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            const regionFilter = document.getElementById('filter-region').value;
+            const segmentFilter = document.getElementById('filter-segment').value;
+
+            // 1. Filter
+            filteredData = rawData.filter(item => {
+                const matchSearch = item["Rep Name"].toLowerCase().includes(searchTerm);
+                const matchRegion = (regionFilter === 'All' || item["Region"] === regionFilter);
+                const matchSegment = (segmentFilter === 'All' || item["Segment"] === segmentFilter);
+                return matchSearch && matchRegion && matchSegment;
+            });
+
+            // 2. Sort
+            filteredData.sort((a, b) => {
+                const attainmentA = a["Q1 Plan"] > 0 ? (a["Q1 Actual"] / a["Q1 Plan"]) : 0;
+                const attainmentB = b["Q1 Plan"] > 0 ? (b["Q1 Actual"] / b["Q1 Plan"]) : 0;
+
+                if (currentSort === 'actual-desc') {
+                    return b["Q1 Actual"] - a["Q1 Actual"];
+                } else if (currentSort === 'attainment-desc') {
+                    return attainmentB - attainmentA;
+                } else if (currentSort === 'name-asc') {
+                    return a["Rep Name"].localeCompare(b["Rep Name"]);
+                }
+                return 0;
+            });
+
+            // Update UI elements
+            document.getElementById('record-count').textContent = filteredData.length;
+
+            updateKPIs();
+            updateBarChart();
+            updateDoughnutChart();
+            updateLeaderboardTable();
+        }
+
+        // Update 4 Executive KPI Cards
+        function updateKPIs() {
+            // Calculate totals across ALL raw data or filtered data? Executive cards usually show aggregate scope or filtered scope. Let's make it reflect filtered scope for deep insights.
+            const targetScope = filteredData.length > 0 ? filteredData : rawData;
+
+            const totalActual = targetScope.reduce((acc, curr) => acc + curr["Q1 Actual"], 0);
+            const totalPlan = targetScope.reduce((acc, curr) => acc + curr["Q1 Plan"], 0);
+            const overallAttainment = totalPlan > 0 ? (totalActual / totalPlan) * 100 : 0;
+
+            document.getElementById('kpi-actual').textContent = formatCurrency(totalActual);
+            document.getElementById('kpi-target').textContent = formatCurrency(totalPlan);
+            
+            const attainmentEl = document.getElementById('kpi-attainment');
+            attainmentEl.textContent = overallAttainment.toFixed(1) + '%';
+
+            const badgeEl = document.getElementById('kpi-attainment-badge');
+            const iconBgEl = document.getElementById('kpi-attainment-icon-bg');
+            const iconEl = document.getElementById('kpi-attainment-icon');
+
+            if (overallAttainment >= 100) {
+                badgeEl.textContent = "Exceeded Target";
+                badgeEl.className = "px-2 py-0.5 rounded font-semibold text-emerald-700 bg-emerald-50";
+                iconBgEl.className = "p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shadow-inner";
+                iconEl.className = "fa-solid fa-arrow-trend-up text-base";
+            } else if (overallAttainment >= 80) {
+                badgeEl.textContent = "On Track";
+                badgeEl.className = "px-2 py-0.5 rounded font-semibold text-blue-700 bg-blue-50";
+                iconBgEl.className = "p-2.5 rounded-xl bg-blue-50 text-blue-600 shadow-inner";
+                iconEl.className = "fa-solid fa-chart-line text-base";
+            } else {
+                badgeEl.textContent = "Needs Attention";
+                badgeEl.className = "px-2 py-0.5 rounded font-semibold text-amber-700 bg-amber-50";
+                iconBgEl.className = "p-2.5 rounded-xl bg-amber-50 text-amber-600 shadow-inner";
+                iconEl.className = "fa-solid fa-triangle-exclamation text-base";
+            }
+
+            // MVP Top Performer (Based on highest actual sales in current scope)
+            if (targetScope.length > 0) {
+                const mvp = [...targetScope].sort((a, b) => b["Q1 Actual"] - a["Q1 Actual"])[0];
+                const mvpRate = mvp["Q1 Plan"] > 0 ? Math.round((mvp["Q1 Actual"] / mvp["Q1 Plan"]) * 100) : 0;
+                
+                document.getElementById('kpi-mvp-name').textContent = mvp["Rep Name"];
+                document.getElementById('kpi-mvp-sales').textContent = formatCurrency(mvp["Q1 Actual"]);
+                document.getElementById('kpi-mvp-rate').textContent = mvpRate + '% Attainment';
+            } else {
+                document.getElementById('kpi-mvp-name').textContent = "N/A";
+                document.getElementById('kpi-mvp-sales').textContent = "$0";
+                document.getElementById('kpi-mvp-rate').textContent = "0%";
+            }
+        }
+
+        // Update Grouped Bar Chart
+        function updateBarChart() {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            
+            // Limit to top 15 reps if filtered list is extremely large for visual clarity
+            const chartData = filteredData.slice(0, 15);
+            const labels = chartData.map(d => d["Rep Name"]);
+            const planData = chartData.map(d => d["Q1 Plan"]);
+            const actualData = chartData.map(d => d["Q1 Actual"]);
+
+            if (barChartInstance) {
+                barChartInstance.destroy();
+            }
+
+            barChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Q1 Plan',
+                            data: planData,
+                            backgroundColor: '#1a73e8',
+                            borderRadius: 6,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
+                        },
+                        {
+                            label: 'Q1 Actual',
+                            data: actualData,
+                            backgroundColor: '#34a853',
+                            borderRadius: 6,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.7
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += formatCurrency(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter', size: 11 }, color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { 
+                                font: { family: 'Inter', size: 11 }, 
+                                color: '#64748b',
+                                callback: function(value) {
+                                    return '$' + (value >= 1000 ? (value / 1000) + 'k' : value);
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Cutout Doughnut Chart
+        function updateDoughnutChart() {
+            const ctx = document.getElementById('doughnutChart').getContext('2d');
+            const targetScope = filteredData.length > 0 ? filteredData : rawData;
+
+            let groupMap = {};
+            targetScope.forEach(item => {
+                const key = item[doughnutMode] || 'Other';
+                groupMap[key] = (groupMap[key] || 0) + item["Q1 Actual"];
+            });
+
+            const labels = Object.keys(groupMap);
+            const dataValues = Object.values(groupMap);
+
+            const googleColors = ['#1a73e8', '#34a853', '#fbbc05', '#ea4335', '#4285f4', '#00acc1'];
+
+            if (doughnutChartInstance) {
+                doughnutChartInstance.destroy();
+            }
+
+            doughnutChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: googleColors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                    return ` ${context.label}: ${formatCurrency(value)} (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Build custom legend html
+            const legendContainer = document.getElementById('doughnut-legend');
+            let legendHTML = '';
+            labels.forEach((label, index) => {
+                const color = googleColors[index % googleColors.length];
+                legendHTML += `
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${color}"></span>
+                        <span class="font-semibold text-slate-700">${label}</span>
+                    </div>
+                `;
+            });
+            legendContainer.innerHTML = legendHTML;
+        }
+
+        // Update Leaderboard Table
+        function updateLeaderboardTable() {
+            const tbody = document.getElementById('leaderboard-tbody');
+            const emptyState = document.getElementById('table-empty-state');
+            
+            tbody.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filteredData.forEach((rep, index) => {
+                const plan = rep["Q1 Plan"];
+                const actual = rep["Q1 Actual"];
+                const attainment = plan > 0 ? (actual / plan) * 100 : 0;
+                const attainmentFormatted = attainment.toFixed(1) + '%';
+
+                // Determine Badge Status & styling
+                let badgeHTML = '';
+                if (attainment >= 100) {
+                    badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check text-[10px]"></i> Exceeded</span>`;
+                } else if (attainment >= 80) {
+                    badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-circle-arrow-up text-[10px]"></i> On Track</span>`;
+                } else {
+                    badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Needs Attention</span>`;
+                }
+
+                // Progress Bar calculation (capped at 100% for visual bar width, but show actual rate)
+                const progressWidth = Math.min(attainment, 100);
+                let progressBarColor = 'bg-blue-600';
+                if (attainment >= 100) progressBarColor = 'bg-emerald-500';
+                else if (attainment < 80) progressBarColor = 'bg-amber-500';
+
+                // Rank styling for top 3
+                let rankBadge = `<span class="text-slate-500 font-semibold text-xs">#${index + 1}</span>`;
+                if (index === 0) {
+                    rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-xs shadow-sm"><i class="fa-solid fa-crown text-[10px]"></i></span>`;
+                } else if (index === 1) {
+                    rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold text-xs">2</span>`;
+                } else if (index === 2) {
+                    rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/10 text-amber-900 font-bold text-xs">3</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition duration-150 border-b border-slate-100 last:border-b-0";
+                
+                tr.innerHTML = `
+                    <td class="py-4 px-4 sm:px-6 whitespace-nowrap">${rankBadge}</td>
+                    <td class="py-4 px-4 sm:px-6 font-semibold text-slate-900">${escapeHtml(rep["Rep Name"])}</td>
+                    <td class="py-4 px-4 sm:px-6 whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(rep["Region"])}</span>
+                    </td>
+                    <td class="py-4 px-4 sm:px-6 whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">${escapeHtml(rep["Segment"])}</span>
+                    </td>
+                    <td class="py-4 px-4 sm:px-6 text-right whitespace-nowrap font-medium text-slate-600">${formatCurrency(plan)}</td>
+                    <td class="py-4 px-4 sm:px-6 text-right whitespace-nowrap font-bold text-slate-900">${formatCurrency(actual)}</td>
+                    <td class="py-4 px-4 sm:px-6 text-right whitespace-nowrap font-bold ${attainment >= 100 ? 'text-emerald-600' : (attainment >= 80 ? 'text-blue-600' : 'text-amber-600')}">${attainmentFormatted}</td>
+                    <td class="py-4 px-4 sm:px-6 whitespace-nowrap">${badgeHTML}</td>
+                    <td class="py-4 px-4 sm:px-6">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                                <div class="${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${progressWidth}%"></div>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-500 w-9 text-right">${Math.round(attainment)}%</span>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Security Helper
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
